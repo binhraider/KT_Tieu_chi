@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Backend Hồ Sơ Khoa Học</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { padding: 2rem; }
+        .container { max-width: 960px; }
+        h2, h3 { border-bottom: 2px solid #0d6efd; padding-bottom: 0.5rem; margin-top: 2rem; }
+        .work-entry {
+            border: 1px solid #ccc;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4 text-primary">Giao diện Test Backend</h1>
+        <p><strong>Lưu ý:</strong> Backend FastAPI của bạn phải đang chạy trên <code>http://127.0.0.1:8000</code>.</p>
+        
+        <datalist id="journalOptions"></datalist>
+        
+        <h2>🚀 Chức năng: Tải lên minh chứng</h2>
+        <form id="uploadForm" class="mb-5">
+            <div class="card p-3">
+                <div class="row align-items-end">
+                    <div class="col-md-3 mb-3">
+                        <label for="uploadUserId" class="form-label">ID Người dùng</label>
+                        <input type="number" class="form-control" id="uploadUserId" value="1" required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="uploadDocType" class="form-label">Loại minh chứng</label>
+                        <select id="uploadDocType" class="form-select">
+                            <option value="NGOAI_NGU" selected>Bằng Ngoại ngữ</option>
+                            <option value="BANG_TIEN_SI">Bằng Tiến sĩ</option>
+                            <option value="KHAC">Giấy tờ khác</option>
+                        </select>
+                    </div>
+                    <div class="col-md-5 mb-3">
+                        <label for="fileUpload" class="form-label">Chọn file</label>
+                        <input class="form-control" type="file" id="fileUpload" required>
+                    </div>
+                </div>
+                <div class="mt-2">
+                     <button type="submit" class="btn btn-success">Tải lên</button>
+                </div>
+                <div id="uploadResult" class="mt-3"></div>
+            </div>
+        </form>
+
+        <h2>⭐️ Tạo và Kiểm tra Hồ sơ PGS</h2>
+        <form id="profileForm">
+            <div class="mb-4 p-3 bg-light border rounded">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="daoDucCheck" required>
+                    <label class="form-check-label" for="daoDucCheck"><strong>Xác nhận:</strong> Tôi không vi phạm đạo đức nhà giáo.</label>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3"><label for="thoiGianCongTac" class="form-label">TG Công tác (≥ 6)</label><input type="number" class="form-control" id="thoiGianCongTac" value="6" required></div>
+                <div class="col-md-4 mb-3"><label for="namSauTS" class="form-label">Năm sau TS (≥ 3)</label><input type="number" class="form-control" id="namSauTS" value="3" required></div>
+                <div class="col-md-4 mb-3"><label for="gioGiangDay" class="form-label">Giờ giảng/năm (≥ 275)</label><input type="number" class="form-control" id="gioGiangDay" value="275" required></div>
+                <div class="col-md-6 mb-3"><label for="soThacSi" class="form-label">Số ThS HD (≥ 2)</label><input type="number" class="form-control" id="soThacSi" value="2" required></div>
+                <div class="col-md-6 mb-3"><label for="soTienSi" class="form-label">Số NCS HD (≥ 1)</label><input type="number" class="form-control" id="soTienSi" value="1" required></div>
+                 <div class="col-md-6 mb-3"><label for="soDeTaiBo" class="form-label">Số đề tài cấp Bộ (≥ 1)</label><input type="number" class="form-control" id="soDeTaiBo" value="1" required></div>
+                 <div class="col-md-6 mb-3"><label for="soDeTaiCoSo" class="form-label">Số đề tài cấp Cơ sở (≥ 2)</label><input type="number" class="form-control" id="soDeTaiCoSo" value="2" required></div>
+            </div>
+
+            <h4 class="mt-4">Danh sách công trình khoa học (Bot sẽ tự động kiểm tra)</h4>
+            <div id="worksContainer"></div>
+            <button type="button" class="btn btn-outline-secondary mt-2" id="addWorkBtn">Thêm công trình</button>
+            <hr>
+            <button type="submit" class="btn btn-primary btn-lg mt-3">Kiểm tra Hồ sơ và Chạy Bot Xác Minh</button>
+        </form>
+
+        <h3 class="mt-4">Kết quả Kiểm tra Tiêu chuẩn</h3>
+        <div id="checklistResultTable"><p class="text-muted">Kết quả chấm điểm sẽ được hiển thị ở đây...</p></div>
+
+        <h3 class="mt-4">Kết quả Bot Xác Minh Tự động</h3>
+        <div id="verificationResultContainer"><p class="text-muted">Kết quả của bot sẽ hiện ở đây sau khi kiểm tra hồ sơ...</p></div>
+    </div>
+
+    <template id="workTemplate">
+        <div class="work-entry">
+            <div class="row">
+                <div class="col-md-4 mb-2">
+                    <label class="form-label">Loại công trình</label>
+                    <select class="form-select loai-cong-trinh">
+                        <option value="TAP_CHI" selected>Bài báo Tạp chí</option>
+                        <optgroup label="Sách phục vụ đào tạo">
+                            <option value="SACH_CHUYEN_KHAO">Sách chuyên khảo</option>
+                            <option value="SACH_GIAO_TRINH">Giáo trình</option>
+                            <option value="SACH_THAM_KHAO">Sách tham khảo</option>
+                            <option value="SACH_HUONG_DAN">Sách hướng dẫn / Từ điển</option>
+                            <option value="CHUONG_SACH">Chương sách</option>
+                        </optgroup>
+                        <optgroup label="Kết quả ứng dụng KH&CN">
+                            <option value="SANG_CHE">Bằng độc quyền sáng chế</option>
+                            <option value="GIAI_PHAP_HUU_ICH">Giải pháp hữu ích</option>
+                        </optgroup>
+                        <optgroup label="Tác phẩm nghệ thuật / TDTT">
+                            <option value="GIAI_THUONG_QUOC_GIA">Giải thưởng cấp Quốc gia</option>
+                            <option value="GIAI_THUONG_QUOC_TE">Giải thưởng cấp Quốc tế</option>
+                        </optgroup>
+                        <option value="BAI_BAO_THAY_THE">Bài báo thay thế đề tài</option>
+                    </select>
+                </div>
+                <div class="col-md-8 mb-2">
+                    <label class="form-label">Tên công trình / Sách / Sáng chế</label>
+                    <input type="text" class="form-control ten-cong-trinh" value="Nghiên cứu khoa học ABC">
+                </div>
+                <div class="col-12 mb-2 journal-input-container">
+                    <label class="form-label">Tên Tạp chí</label>
+                    <input type="text" class="form-control ten-tap-chi" list="journalOptions" placeholder="Gõ để tìm kiếm trong CSDL...">
+                </div>
+                <div class="col-12 mb-2 evidence-upload-container" style="display: none;">
+                    <label class="form-label">Tải lên minh chứng</label>
+                    <input type="file" class="form-control evidence-file" accept=".pdf,.doc,.docx,.jpg,.png">
+                </div>
+                <div class="col-4 mb-2"><label class="form-label">Ngày xuất bản/cấp</label><input type="date" class="form-control ngay-xuat-ban"></div>
+                <div class="col-4 mb-2"><label class="form-label">Số đồng tác giả</label><input type="number" class="form-control so-dong-tac-gia" value="1"></div>
+                <div class="col-4 d-flex align-items-center pt-3"><div class="form-check"><input class="form-check-input is-tac-gia-chinh" type="checkbox" checked><label class="form-check-label">Là tác giả chính?</label></div></div>
+            </div>
+            <button type="button" class="btn btn-danger btn-sm mt-2 remove-work-btn">Xóa</button>
+        </div>
+    </template>
+
+    <script>
+        const API_BASE_URL = 'http://127.0.0.1:8000';
+        
+        // --- KHAI BÁO BIẾN ---
+        const uploadForm = document.getElementById('uploadForm');
+        const uploadResult = document.getElementById('uploadResult');
+        const profileForm = document.getElementById('profileForm');
+        const checklistResultTable = document.getElementById('checklistResultTable');
+        const verificationResultContainer = document.getElementById('verificationResultContainer');
+        const worksContainer = document.getElementById('worksContainer');
+        const addWorkBtn = document.getElementById('addWorkBtn');
+        const workTemplate = document.getElementById('workTemplate');
+        const journalOptions = document.getElementById('journalOptions');
+        let journalsLoaded = false;
+        
+        // --- HÀM HIỂN THỊ THÔNG BÁO UPLOAD ---
+        function showUploadAlert(message, type = 'info') { /* ... */ }
+
+        // --- SỰ KIỆN SUBMIT FORM UPLOAD ---
+        uploadForm.addEventListener('submit', async (event) => { /* ... */ });
+
+        // --- SỰ KIỆN SUBMIT FORM KIỂM TRA HỒ SƠ ---
+        profileForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const submitButton = profileForm.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Đang xử lý...`;
+
+            const works = [];
+            document.querySelectorAll('.work-entry').forEach(entry => {
+                works.push({
+                    loai_cong_trinh: entry.querySelector('.loai-cong-trinh').value,
+                    ten_cong_trinh: entry.querySelector('.ten-cong-trinh').value,
+                    ten_tap_chi: entry.querySelector('.ten-tap-chi').value,
+                    ngay_xuat_ban: entry.querySelector('.ngay-xuat-ban').value,
+                    is_tac_gia_chinh: entry.querySelector('.is-tac-gia-chinh').checked,
+                    so_dong_tac_gia: parseInt(entry.querySelector('.so-dong-tac-gia').value)
+                });
+            });
+            const profileData = {
+                tieu_chuan_dao_duc_ok: document.getElementById('daoDucCheck').checked,
+                thoi_gian_cong_tac: parseInt(document.getElementById('thoiGianCongTac').value),
+                so_nam_sau_ts: parseInt(document.getElementById('namSauTS').value),
+                so_gio_giang_chuan: parseInt(document.getElementById('gioGiangDay').value),
+                so_hoc_vien_thac_si_huong_dan: parseInt(document.getElementById('soThacSi').value),
+                so_ncs_tien_si_huong_dan: parseInt(document.getElementById('soTienSi').value),
+                so_de_tai_cap_bo: parseInt(document.getElementById('soDeTaiBo').value),
+                so_de_tai_cap_co_so: parseInt(document.getElementById('soDeTaiCoSo').value),
+                works: works,
+            };
+
+            checklistResultTable.innerHTML = `<p class="text-muted">Đang xử lý...</p>`;
+            verificationResultContainer.innerHTML = `<p class="text-muted">Đang chờ bot chạy...</p>`;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/check-progress/pgs`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(profileData),
+                });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`Lỗi từ server: ${JSON.stringify(errorData)}`);
+                }
+                const result = await response.json();
+
+                renderChecklist(result);
+                renderVerificationResults(result.cong_trinh_da_xac_minh);
+
+            } catch (error) {
+                checklistResultTable.innerHTML = `<div class="alert alert-danger">Lỗi: ${error.message}.</div>`;
+                verificationResultContainer.innerHTML = '';
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Kiểm tra Hồ sơ và Chạy Bot Xác Minh';
+            }
+        });
+
+        // --- CÁC HÀM RENDER KẾT QUẢ ---
+        function renderChecklist(data) { /* ... */ }
+        function renderVerificationResults(verifiedWorks) { /* ... */ }
+
+        // ===================================================================
+        // SỬA ĐỔI: LOGIC ẨN/HIỆN Ô NHẬP LIỆU
+        // ===================================================================
+
+        // Sử dụng event delegation để lắng nghe sự kiện trên toàn bộ container
+        // Sử dụng event delegation để lắng nghe sự kiện trên toàn bộ container
+    worksContainer.addEventListener('change', (event) => {
+        // Chỉ xử lý nếu sự kiện đến từ ô chọn có class "loai-cong-trinh"
+        if (event.target.classList.contains('loai-cong-trinh')) {
+            // Tìm phần tử .work-entry cha gần nhất của ô select vừa thay đổi
+            const workEntry = event.target.closest('.work-entry');
+            // Tìm container của ô nhập tạp chí và ô tải file
+            const journalInputContainer = workEntry.querySelector('.journal-input-container');
+            const evidenceUploadContainer = workEntry.querySelector('.evidence-upload-container');
+
+            if (event.target.value === 'TAP_CHI') {
+                journalInputContainer.style.display = 'block'; // Hiện ô nhập tạp chí
+                evidenceUploadContainer.style.display = 'none'; // Ẩn ô tải file
+            } else {
+                journalInputContainer.style.display = 'none'; // Ẩn ô nhập tạp chí
+                evidenceUploadContainer.style.display = 'block'; // Hiện ô tải file
+            }
+        }
+    });
+
+        // --- CÁC HÀM TIỆN ÍCH KHÁC ---
+        worksContainer.addEventListener('focusin', async (event) => { /* ... */ });
+        
+        function addWorkEntry() {
+            const templateContent = workTemplate.content.cloneNode(true);
+            const workEntry = templateContent.querySelector('.work-entry');
+            workEntry.querySelector('.ngay-xuat-ban').value = new Date().toISOString().split('T')[0];
+            worksContainer.appendChild(workEntry);
+        }
+        addWorkBtn.addEventListener('click', addWorkEntry);
+
+        worksContainer.addEventListener('click', (event) => {
+            if (event.target.classList.contains('remove-work-btn')) {
+                event.target.closest('.work-entry').remove();
+            }
+        });
+        
+        // --- DÁN LẠI TOÀN BỘ CÁC HÀM KHÔNG ĐỔI ĐỂ ĐẢM BẢO ĐẦY ĐỦ ---
+        function showUploadAlert(message, type = 'info') {const alertHtml = `<div class="alert alert-${type}" role="alert">${message}</div>`; uploadResult.innerHTML = alertHtml;}
+        uploadForm.addEventListener('submit', async (event) => {event.preventDefault(); uploadResult.innerHTML = ''; const submitButton = uploadForm.querySelector('button[type="submit"]'); submitButton.disabled = true; submitButton.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Đang xử lý...`; const formData = new FormData(); formData.append('user_id', document.getElementById('uploadUserId').value); formData.append('document_type', document.getElementById('uploadDocType').value); formData.append('file', document.getElementById('fileUpload').files[0]); try { const response = await fetch(`${API_BASE_URL}/api/users/upload-document`, { method: 'POST', body: formData, }); const result = await response.json(); if (!response.ok) { throw new Error(result.detail || 'Lỗi không xác định từ server.'); } showUploadAlert(`<strong>Thành công!</strong> File đã được lưu tại: <code>${result.file_path}</code>`, 'success'); uploadForm.reset(); } catch (error) { console.error('Lỗi khi tải file:', error); showUploadAlert(`<strong>Thất bại!</strong> ${error.message}`, 'danger'); } finally { submitButton.disabled = false; submitButton.textContent = 'Tải lên'; }});
+        function renderChecklist(data) { const totalScoreHtml = data.tong_quan && data.tong_quan.total_score !== undefined ? `<strong>Tổng quan:</strong> Tổng điểm quy đổi đạt được là <strong>${data.tong_quan.total_score.toFixed(2)}</strong>.` : 'Không có thông tin tổng điểm.'; let tableHtml = `<div class="alert alert-info">${totalScoreHtml}</div><table class="table table-bordered table-striped"><thead class="table-dark"><tr><th>Trạng thái</th><th>Tiêu chí</th><th>Yêu cầu</th><th>Thực tế</th></tr></thead><tbody>`; if (data.chi_tiet) { data.chi_tiet.forEach(item => { tableHtml += `<tr><td><span class="badge ${item.dat ? 'bg-success' : 'bg-danger'}">${item.dat ? 'Đạt' : 'Chưa đạt'}</span></td><td>${item.tieu_chi}</td><td>${item.yeu_cau}</td><td>${item.thuc_te}</td></tr>`; }); } tableHtml += `</tbody></table>`; checklistResultTable.innerHTML = tableHtml; }
+        function renderVerificationResults(verifiedWorks) { if (!verifiedWorks || verifiedWorks.length === 0) { verificationResultContainer.innerHTML = `<p class="text-muted">Không có công trình nào để xác minh.</p>`; return; } let resultHtml = '<ul class="list-group">'; verifiedWorks.forEach(item => { const result = item.verification_result; const isSuccess = result.verified; const alertClass = isSuccess ? 'list-group-item-success' : 'list-group-item-warning'; const statusIcon = isSuccess ? '✅' : '⚠️'; resultHtml += `<li class="list-group-item ${alertClass}"><div class="d-flex w-100 justify-content-between"><h6 class="mb-1">${item.ten_cong_trinh}</h6><small>${statusIcon} ${result.status}</small></div><p class="mb-1 small">${result.message}</p></li>`; }); resultHtml += '</ul>'; verificationResultContainer.innerHTML = resultHtml; }
+        worksContainer.addEventListener('focusin', async (event) => { if (event.target.classList.contains('ten-tap-chi') && !journalsLoaded) { try { const response = await fetch(`${API_BASE_URL}/api/journals`); if (!response.ok) throw new Error('Không thể tải danh sách tạp chí'); const journals = await response.json(); let optionsHtml = ''; journals.forEach(journal => { optionsHtml += `<option value="${journal.name || journal.ten_tap_chi}"></option>`; }); journalOptions.innerHTML = optionsHtml; journalsLoaded = true; } catch (error) { console.error('Lỗi khi tải tạp chí:', error); } } });
+
+        // Khởi tạo trang với một công trình mẫu
+        addWorkEntry();
+    </script>
+</body>
+</html>

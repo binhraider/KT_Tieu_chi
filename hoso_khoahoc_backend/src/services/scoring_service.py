@@ -1,53 +1,59 @@
 # src/services/scoring_service.py
 
-# Giả sử bạn có một file repository để xử lý việc truy vấn CSDL
-# Chúng ta sẽ tạo file này ở bước tiếp theo.
-from repositories.journal_repository import JournalRepository
+from ..repositories.journal_repository import JournalRepository
+from ..models.user_profile import WorkInput
+from fastapi import Depends
 
 class ScoringService:
-    """
-    Service này chứa toàn bộ logic nghiệp vụ liên quan đến việc tính điểm
-    cho các công trình khoa học.
-    """
-    def __init__(self, db_connection):
+    def __init__(self, journal_repo: JournalRepository = Depends(JournalRepository)):
+        self.journal_repo = journal_repo
+
+    def calculate_work_score(self, work: WorkInput, db) -> float:
         """
-        Khởi tạo service với một kết nối đến database.
+        PHIÊN BẢN HOÀN CHỈNH: Tính điểm dựa trên loại công trình khoa học.
+        - Bài báo tạp chí: Tra cứu CSDL.
+        - Các loại khác: Tính điểm cố định theo quy tắc.
+        """
+        loai = work.loai_cong_trinh
         
-        Args:
-            db_connection: Đối tượng kết nối từ mysql.connector.
-        """
-        # Service này sẽ sử dụng JournalRepository để nói chuyện với database.
-        self.journal_repo = JournalRepository(db_connection)
+        # 1. Bài báo Tạp chí
+        if loai == 'TAP_CHI':
+            if not work.ten_tap_chi or not work.ngay_xuat_ban:
+                return 0.0
+            return self.journal_repo.get_score_by_journal_name(
+                db=db,
+                journal_name=work.ten_tap_chi,
+                publication_date=work.ngay_xuat_ban
+            )
+            
+        # 2. Sách phục vụ đào tạo (dựa trên ảnh bạn cung cấp)
+        elif loai == 'SACH_CHUYEN_KHAO':
+            return 3.0
+        elif loai == 'SACH_GIAO_TRINH':
+            return 2.0
+        elif loai == 'SACH_THAM_KHAO':
+            return 1.5
+        elif loai == 'SACH_HUONG_DAN':
+            return 1.0
+        elif loai == 'CHUONG_SACH':
+            return 1.0
+            
+        # 3. Kết quả ứng dụng KH&CN
+        elif loai == 'SANG_CHE':
+            return 3.0
+        elif loai == 'GIAI_PHAP_HUU_ICH':
+            return 2.0
 
-    def calculate_score_for_article(self, journal_id, publication_date, publication_type=None):
-        """
-        Tính điểm cho một bài báo khoa học dựa trên thông tin đã có.
+        # 4. Tác phẩm nghệ thuật / TDTT
+        elif loai == 'GIAI_THUONG_QUOC_GIA':
+            return 1.0
+        elif loai == 'GIAI_THUONG_QUOC_TE':
+            return 1.5
 
-        Args:
-            journal_id (int): ID của tạp chí trong bảng `journals`.
-            publication_date (str or date): Ngày xuất bản của bài báo (ví dụ: '2024-05-15').
-            publication_type (str, optional): Loại hình xuất bản (ví dụ: 'Online'). Mặc định là None.
-
-        Returns:
-            float: Số điểm tính được. Trả về 0.0 nếu không tìm thấy quy tắc tính điểm.
-        """
-        print(f"Bắt đầu tính điểm cho journal_id: {journal_id}, ngày xuất bản: {publication_date}")
-
-        # Gọi đến repository để tìm điểm trong database
-        points = self.journal_repo.find_points_for_journal(
-            journal_id,
-            publication_date,
-            publication_type
-        )
-
-        if points is not None:
-            print(f"Tìm thấy điểm: {points}")
-            return points
-        
-        print("Không tìm thấy quy tắc tính điểm phù hợp. Trả về 0 điểm.")
-        return 0.0
-
-    # Bạn có thể thêm các hàm tính điểm cho các loại công trình khác ở đây
-    # ví dụ: calculate_score_for_book(), calculate_score_for_patent()
-    # ...
-
+        # 5. Bài báo thay thế đề tài (cho ngành đặc thù)
+        elif loai == 'BAI_BAO_THAY_THE':
+            return 1.5
+            
+        # Mặc định, các loại khác không có điểm
+        else:
+            return 0.0

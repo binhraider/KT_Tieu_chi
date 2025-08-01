@@ -1,30 +1,28 @@
 # src/config/database.py
 
 import mysql.connector
-from mysql.connector import Error
+from mysql.connector import pooling
+import os
 
-# --- THAY ĐỔI CÁC THÔNG SỐ KẾT NỐI DATABASE CỦA BẠN TẠI ĐÂY ---
-DB_CONFIG = {
-    'host': 'localhost',
-    'database': 'hoso_khoahoc_db', # Tên database của bạn
-    'user': 'root',               # Tên user của bạn
-    'password': '1111'            # Mật khẩu của bạn
-}
+# Tạo một connection pool để quản lý kết nối hiệu quả
+db_pool = pooling.MySQLConnectionPool(
+    pool_name="hskh_pool",
+    pool_size=5,
+    host=os.getenv("DB_HOST", "localhost"),
+    user=os.getenv("DB_USER", "root"),
+    password=os.getenv("DB_PASSWORD", "1111"),
+    database=os.getenv("DB_NAME", "hoso_khoahoc_db"),
+    port=os.getenv("DB_PORT", 3306)
+)
 
-def get_db_connection():
+def get_db():
     """
-    Hàm này sẽ được sử dụng bởi FastAPI's Dependency Injection.
-    Nó tạo một kết nối mới cho mỗi request và đảm bảo nó được đóng lại sau đó.
+    Hàm dependency cung cấp một kết nối database cho mỗi request.
     """
     connection = None
     try:
-        connection = mysql.connector.connect(**DB_CONFIG)
-        yield connection # Trả về connection cho API sử dụng
-    except Error as e:
-        print(f"Lỗi khi kết nối đến MySQL: {e}")
-        # Có thể thêm logging ở đây
-        yield None
+        connection = db_pool.get_connection()
+        yield connection
     finally:
         if connection and connection.is_connected():
             connection.close()
-

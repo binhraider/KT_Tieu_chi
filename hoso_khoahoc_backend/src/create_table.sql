@@ -86,3 +86,17 @@ CREATE TABLE `criteria_rules` (
   `description` TEXT NULL,
   `rule_details` JSON NOT NULL COMMENT 'Lưu chi tiết quy tắc dưới dạng JSON, ví dụ: {"value": 10, "unit": "points", "condition": ">="}'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- Bảng 6: Quản lý các file minh chứng của người dùng (MỚI)
+-- Bảng này dùng để lưu đường dẫn tới các file người dùng tải lên,
+-- ví dụ như ảnh chụp bằng ngoại ngữ, file PDF quyết định đề tài,...
+CREATE TABLE `user_documents` (
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `user_id` INT UNSIGNED NOT NULL,
+  `document_type` VARCHAR(100) NOT NULL COMMENT 'Loại minh chứng, ví dụ: NGOAI_NGU, BANG_TIEN_SI, HD_THS',
+  `file_path` VARCHAR(1024) NOT NULL COMMENT 'Đường dẫn tới file đã lưu trên server',
+  `original_filename` VARCHAR(255) NULL COMMENT 'Tên file gốc của người dùng',
+  `uploaded_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
